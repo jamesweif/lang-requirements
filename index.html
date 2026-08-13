@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>语言要求查询 - PTE & 雅思</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #2563EB;
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --border: #E2E8F0;
+      --text: #1E293B;
+      --text-light: #64748B;
+      --au: #3B82F6; --nz: #10B981; --uk: #8B5CF6; --my: #EF4444; --ca: #F59E0B;
+      --pte: #B91C1C; --ielts: #DC2626;
+      --green: #059669;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+    header { background: var(--primary); color: white; padding: 18px 24px; }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header p { font-size: 0.85rem; opacity: 0.9; margin-top: 3px; }
+
+    /* ===== 切换 Tabs ===== */
+    .mode-tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 2px solid var(--border);
+    }
+    .mode-tab {
+      flex: 1;
+      padding: 12px 0;
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      color: var(--text-light);
+      transition: all 0.2s;
+    }
+    .mode-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .mode-tab span { display: block; font-size: 0.75rem; font-weight: 400; margin-top: 2px; color: var(--text-light); }
+    .mode-tab.active span { color: var(--primary); opacity: 0.7; }
+
+    /* ===== 通用 Filter ===== */
+    .filter-bar { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 24px; position: sticky; top: 0; z-index: 100; }
+    .search-box { position: relative; margin-bottom: 10px; }
+    .search-box input { width: 100%; padding: 10px 14px 10px 40px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+    .search-box input:focus { border-color: var(--primary); }
+    .search-box .si { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-light); }
+    .country-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .country-tab { padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: 2px solid transparent; background: var(--bg); color: var(--text-light); transition: all 0.2s; }
+    .country-tab:hover { border-color: var(--border); }
+    .country-tab.active { color: white; }
+    .country-tab[data-country="au"].active { background: var(--au); }
+    .country-tab[data-country="nz"].active { background: var(--nz); }
+    .country-tab[data-country="uk"].active { background: var(--uk); }
+    .country-tab[data-country="my"].active { background: var(--my); }
+    .country-tab[data-country="ca"].active { background: var(--ca); }
+    .country-tab[data-country="all"].active { background: var(--text); }
+
+    .stats-bar { padding: 10px 24px; font-size: 0.85rem; color: var(--text-light); display: flex; justify-content: space-between; }
+
+    /* ===== 签证视图 ===== */
+    #visa-view { display: none; }
+    #visa-view.active { display: block; }
+    .visa-country-list { padding: 16px 24px 40px; }
+
+    .visa-country-block { margin-bottom: 28px; }
+    .visa-country-title { font-size: 1rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+    .visa-card {
+      background: var(--card);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .visa-card-header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.15s; }
+    .visa-card-header:hover { background: #F8FAFC; }
+    .visa-card-title { font-weight: 600; font-size: 0.95rem; }
+    .visa-card-note { font-size: 0.75rem; color: var(--text-light); }
+    .visa-card-body { display: none; border-top: 1px solid var(--border); padding: 14px 16px; background: #FAFBFF; }
+    .visa-card.expanded .visa-card-body { display: block; }
+    .visa-card.expanded .visa-card-header .arrow { transform: rotate(180deg); }
+    .arrow { transition: transform 0.2s; font-size: 0.75rem; color: var(--text-light); }
+
+    .visa-req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .visa-req-item { background: white; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); }
+    .exam-icon { width: 36px; height: 36px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: white; flex-shrink: 0; }
+    .icon-pte { background: var(--pte); }
+    .icon-pte-core { background: #F59E0B; }
+    .icon-ielts { background: var(--ielts); }
+    .visa-req-info .exam-name { font-size: 0.75rem; color: var(--text-light); }
+    .visa-req-info .exam-score { font-weight: 700; font-size: 1rem; }
+    .visa-req-info .exam-sub { font-size: 0.72rem; color: var(--text-light); margin-top: 1px; }
+
+    /* ===== 学校视图 ===== */
+    #school-view { display: none; }
+    #school-view.active { display: block; }
+    .results { padding: 0 24px 40px; }
+
+    .school-card { background: var(--card); border-radius: 12px; margin-bottom: 12px; overflow: hidden; border: 1px solid var(--border); animation: fadeIn 0.25s ease; }
+    .school-header { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.15s; }
+    .school-header:hover { background: #F8FAFC; }
+    .school-name { font-size: 1rem; font-weight: 600; }
+    .school-city { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
+    .school-badge { font-size: 0.72rem; padding: 3px 9px; border-radius: 10px; font-weight: 500; }
+    .badge-au { background: #DBEAFE; color: #1D4ED8; }
+    .badge-nz { background: #D1FAE5; color: #065F46; }
+    .badge-uk { background: #EDE9FE; color: #5B21B6; }
+    .badge-my { background: #FEE2E2; color: #991B1B; }
+    .badge-ca { background: #FEF3C7; color: #92400E; }
+
+    .school-body { border-top: 1px solid var(--border); }
+    .school-visa-bar { padding: 8px 18px; background: #EFF6FF; font-size: 0.78rem; color: var(--text-light); display: flex; align-items: center; gap: 6px; }
+    .school-visa-bar .vl-flag { }
+    .school-visa-bar .vl-score { font-weight: 600; color: var(--text); margin-left: auto; }
+
+    .req-table { display: grid; grid-template-columns: 1fr 1fr; }
+    .req-col { padding: 10px 16px; }
+    .req-col:first-child { border-right: 1px solid var(--border); }
+    .req-title { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--text-light); letter-spacing: 0.05em; margin-bottom: 7px; }
+    .req-row { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; font-size: 0.85rem; }
+    .req-row:last-child { margin-bottom: 0; }
+    .icon-pte-sm { background: var(--pte); color: white; font-size: 0.62rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; flex-shrink: 0; }
+    .icon-pte-core-sm { background: #F59E0B; color: white; font-size: 0.62rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; flex-shrink: 0; }
+    .icon-ielts-sm { background: var(--ielts); color: white; font-size: 0.62rem; font-weight: 700; padding: 3px 5px; border-radius: 4px; flex-shrink: 0; }
+    .vs-tag { font-size: 0.65rem; padding: 2px 5px; border-radius: 4px; margin-left: 5px; font-weight: 600; }
+    .vs-higher { background: #FEE2E2; color: #991B1B; }
+    .vs-meet { background: #D1FAE5; color: #065F46; }
+    .school-note { background: #FEF3C7; padding: 8px 18px; font-size: 0.78rem; color: #92400E; }
+
+    .expand-hint { font-size: 0.72rem; color: var(--text-light); }
+    .empty { text-align: center; padding: 60px 24px; color: var(--text-light); }
+    .empty-icon { font-size: 3rem; margin-bottom: 14px; }
+    footer { text-align: center; padding: 18px; font-size: 0.78rem; color: var(--text-light); border-top: 1px solid var(--border); }
+
+    @media (max-width: 640px) {
+      header h1 { font-size: 1.2rem; }
+      .filter-bar { padding: 10px 16px; }
+      .visa-country-list { padding: 12px 16px 40px; }
+      .visa-req-grid { grid-template-columns: 1fr; }
+      .results { padding: 0 16px 40px; }
+      .req-table { grid-template-columns: 1fr; }
+      .req-col:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌍 语言要求查询</h1>
+  <p>PTE · 雅思 — 澳洲 · 新西兰 · 英国 · 马来西亚</p>
+</header>
+
+<!-- 视图切换 -->
+<div class="mode-tabs">
+  <div class="mode-tab active" data-mode="visa" onclick="switchMode('visa')">
+    📋 签证语言要求
+    <span>按签证类型查看</span>
+  </div>
+  <div class="mode-tab" data-mode="school" onclick="switchMode('school')">
+    🎓 学校语言要求
+    <span>按学校查看</span>
+  </div>
+</div>
+
+<!-- 通用 Filter -->
+<div class="filter-bar" id="filterBar">
+  <div class="search-box">
+    <span class="si">🔍</span>
+    <input type="text" id="searchInput" placeholder="搜索..." />
+  </div>
+  <div class="country-tabs" id="countryTabs">
+    <button class="country-tab active" data-country="all">全部</button>
+    <button class="country-tab" data-country="au">🇦🇺 澳洲</button>
+    <button class="country-tab" data-country="nz">🇳🇿 新西兰</button>
+    <button class="country-tab" data-country="uk">🇬🇧 英国</button>
+    <button class="country-tab" data-country="my">🇲🇾 马来西亚</button>
+    <button class="country-tab" data-country="ca">🇨🇦 加拿大</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <span id="statsText"></span>
+  <span style="font-size:0.72rem">数据来源：各校官网及移民局 · 仅供参考</span>
+</div>
+
+<!-- ===== 签证视图 ===== -->
+<div id="visa-view" class="active">
+  <div class="visa-country-list" id="visaCountryList"></div>
+</div>
+
+<!-- ===== 学校视图 ===== -->
+<div id="school-view">
+  <div class="results" id="schoolResults"></div>
+</div>
+
+<footer>
+  ⚠️ 数据仅供参考，具体要求以学校官网及移民局最新政策为准<br/>
+  如有疑问，欢迎咨询
+</footer>
+
+<script>
+// ===== 签证数据 =====
+const visaData = {
+  au: {
+    label: '澳大利亚', flag: '🇦🇺', color: '#3B82F6',
+    types: [
+      {
+        id: 'student-500', name: '500 学生签', note: '2025.8.7 起实行新标准（主课直录）',
+        pte: { score: '47', sub: '听 47 · 读 48 · 写 51 · 说 54' },
+        ielts: { score: '5.5（对应 PTE 47）', sub: '单项无强制要求（可豁免）' },
+      },
+      {
+        id: 'student-500-lang10', name: '500 + 10周语言班', note: '配 10 周语言直升',
+        pte: { score: '39', sub: '无强制小分' },
+        ielts: { score: '5.0', sub: '无强制小分' },
+      },
+      {
+        id: 'student-500-lang20', name: '500 + 20周语言班', note: '配 20 周语言直升',
+        pte: { score: '31', sub: '无强制小分' },
+        ielts: { score: '—', sub: '需查具体要求' },
+      },
+      {
+        id: '485-new', name: '485 毕业生签（新）', note: '2025.8.7 后参加 PTE 考试适用',
+        pte: { score: '55', sub: '听 40 · 读 42 · 写 41 · 说 39' },
+        ielts: { score: '6.0', sub: '新标准' },
+      },
+      {
+        id: '485-old', name: '485 毕业生签（旧）', note: '2025.8.6 前参加 PTE 考试适用',
+        pte: { score: '57', sub: '听 43 · 读 48 · 写 51 · 说 42' },
+        ielts: { score: '6.0', sub: '旧标准' },
+      },
+      {
+        id: '189-c', name: '189 技术移民 — Competent', note: '独立技术移民基础线',
+        pte: { score: '47', sub: '听 47 · 读 48 · 写 51 · 说 54' },
+        ielts: { score: '4×6（各项 6.0）', sub: '无加分' },
+      },
+      {
+        id: '189-p', name: '189 技术移民 — Proficient', note: 'Competent +10 分',
+        pte: { score: '65', sub: '听 58 · 读 59 · 写 69 · 说 76' },
+        ielts: { score: '4×7（各项 7.0）', sub: '+10 分' },
+      },
+      {
+        id: '189-s', name: '189 技术移民 — Superior', note: '最高档，+20 分',
+        pte: { score: '79', sub: '听 69 · 读 70 · 写 85 · 说 88' },
+        ielts: { score: '4×8（各项 8.0）', sub: '+20 分' },
+      },
+      {
+        id: '190', name: '190 州担保', note: '需州政府担保，通常与 189 同级',
+        pte: { score: '参照 189 同等标准', sub: '各州略有差异' },
+        ielts: { score: '参照 189 同等标准', sub: '' },
+      },
+      {
+        id: '491', name: '491 偏远地区州担保', note: '州/亲属担保，可转 191 永居',
+        pte: { score: '参照 Competent 47', sub: '加分后可达 Proficient' },
+        ielts: { score: '参照 4×6', sub: '' },
+      },
+      {
+        id: '482-new', name: '482 雇主担保（新）', note: '2025.9.13 后参加考试适用',
+        pte: { score: '—（无总分要求）', sub: '听 33 · 读 36 · 写 29 · 说 24' },
+        ielts: { score: '5.0', sub: '新标准' },
+      },
+      {
+        id: '482-old', name: '482 雇主担保（旧）', note: '2025.9.12 前参加考试适用',
+        pte: { score: '36', sub: '听说读写均 36' },
+        ielts: { score: '5.0', sub: '各项均 5.0' },
+      },
+      {
+        id: '186', name: '186 永居（雇主担保）', note: 'Direct Entry 通道',
+        pte: { score: '47', sub: '听 47 · 读 48 · 写 51 · 说 54' },
+        ielts: { score: '6.0', sub: '各项均 6.0' },
+      },
+      {
+        id: '462', name: '462 打工度假签', note: 'Working Holiday Maker',
+        pte: { score: 'Functional（24–36）', sub: '无强制小分' },
+        ielts: { score: '4.5', sub: '功能英语' },
+      },
+      {
+        id: 'partner', name: '309/100 配偶移民（境外）', note: 'Partner (Migrant)',
+        pte: { score: '≥ 24', sub: '豁免条件见移民局' },
+        ielts: { score: '4.5', sub: '可豁免' },
+      },
+      {
+        id: '820', name: '820/801 配偶移民（境内）', note: 'Partner (Temporary/Resident)',
+        pte: { score: '≥ 24', sub: '与 309 同标准' },
+        ielts: { score: '4.5', sub: '与 309 同标准' },
+      },
+    ]
+  },
+  nz: {
+    label: '新西兰', flag: '🇳🇿', color: '#10B981',
+    types: [
+      {
+        id: 'student-l4', name: '学生签（NZQF Level 4-6）', note: '含大专、文凭课程',
+        pte: { score: '42', sub: '听说读写均不低于 36' },
+        ielts: { score: '5.0，单项≥4.5', sub: '或托福 34' },
+      },
+      {
+        id: 'student-l7', name: '学生签（NZQF Level 7+）', note: '含本科、研究生',
+        pte: { score: '50+', sub: '研究生通常要求 58+，各院系动态调整' },
+        ielts: { score: '6.0，单项≥5.5', sub: '或托福 60' },
+      },
+      {
+        id: 'teacher', name: '教师注册（含幼教）', note: '2025.11.1 起实施',
+        pte: { score: '69', sub: '听力61·阅读62·写作73·口语79' },
+        ielts: { score: '—', sub: '按 NZTC 要求' },
+      },
+      {
+        id: 'aewv-45', name: 'AEWV 工签（ANZSCO 4-5级）', note: 'Accredited Employer Work Visa',
+        pte: { score: '29', sub: '听说读写均不低于 29' },
+        ielts: { score: '4.0，单项≥3.5', sub: '或托福 31' },
+      },
+      {
+        id: 'aewv-123', name: 'AEWV 工签（ANZSCO 1-3级）', note: '雇主可额外设定要求',
+        pte: { score: '无强制', sub: '雇主自主决定' },
+        ielts: { score: '—', sub: '雇主自主决定' },
+      },
+      {
+        id: 'giv', name: '全球影响力工签', note: 'Global Impact Visa',
+        pte: { score: '58', sub: '听说读写均不低于 58' },
+        ielts: { score: '6.5，单项≥6.0', sub: '或托福 79' },
+      },
+      {
+        id: 'whv', name: '打工度假签（WHV）', note: 'Working Holiday Visa',
+        pte: { score: '42', sub: '无强制小分' },
+        ielts: { score: '5.5，单项≥5.0', sub: '或托福 46' },
+      },
+      {
+        id: 'smc', name: '技术移民/绿名单', note: 'Skilled Migrant / Green List',
+        pte: { score: '58', sub: '听说读写均不低于 58' },
+        ielts: { score: '6.5，单项≥6.0', sub: '或托福 79' },
+      },
+      {
+        id: 'parent', name: '父母团聚居留', note: 'Parent Resident Visa（主申请人）',
+        pte: { score: '36', sub: '或两项单项均 ≥29' },
+        ielts: { score: '5.0，单项≥4.5', sub: '或托福 35' },
+      },
+      {
+        id: 'partner-res', name: '居留副申', note: '配偶/16岁以上子女随行',
+        pte: { score: '36', sub: '2025年新规：豁免门槛提高' },
+        ielts: { score: '5.0，单项≥4.5', sub: '或托福 35' },
+      },
+      {
+        id: 'biz', name: '创业/投资移民', note: 'Entrepreneur / Investor',
+        pte: { score: '36–40', sub: '视类别浮动' },
+        ielts: { score: '5.0–5.5', sub: '或托福 35–46' },
+      },
+      {
+        id: 'pte-note', name: '⚠️ 考试形式要求', note: '2025年新规：PTE Academic 仅接受线下机考',
+        pte: { score: '—', sub: 'PTE Online / 在家考不再认可' },
+        ielts: { score: '—', sub: 'UKVI 学术类保留' },
+      },
+    ]
+  },
+  uk: {
+    label: '英国', flag: '🇬🇧', color: '#8B5CF6',
+    types: [
+      {
+        id: 'student', name: '学生签（Student Route）', note: '标准学生签证',
+        pte: { score: '68', sub: '听说读写均不低于 66' },
+        ielts: { score: '6.5，单项≥6.0', sub: 'UKVI 学术类' },
+      },
+      {
+        id: 'graduate', name: 'Graduate 毕业生签', note: 'Post-Study Work Visa',
+        pte: { score: '—（待确认）', sub: '建议参照学生签标准' },
+        ielts: { score: '6.0，单项≥5.5', sub: 'B2 水平' },
+      },
+      {
+        id: 'skilled', name: '技术工签（Skilled Worker）', note: '需有雇主担保（COS）',
+        pte: { score: '—（B1 参考）', sub: '按岗位等级浮动，请查移民局' },
+        ielts: { score: '4.0（B1）', sub: '视岗位要求 B1–B2' },
+      },
+      {
+        id: 'healthcare', name: '医疗/护理工签', note: 'Health and Care Worker Visa',
+        pte: { score: '—', sub: '请以移民局最新为准' },
+        ielts: { score: '4.0（B1）或 B2', sub: '' },
+      },
+      {
+        id: 'family', name: '家庭签', note: 'Family of a settled person',
+        pte: { score: '—', sub: '请以移民局最新为准' },
+        ielts: { score: 'A1（首次）/ B1（延期）', sub: '' },
+      },
+    ]
+  },
+  my: {
+    label: '马来西亚', flag: '🇲🇾', color: '#EF4444',
+    types: [
+      {
+        id: 'student-my', name: '学生签', note: '视学校及课程而定',
+        pte: { score: '36–47', sub: '视课程要求' },
+        ielts: { score: '5.0–5.5', sub: '视课程要求' },
+      },
+      {
+        id: 'dependent-my', name: '家属签（Dependant Pass）', note: '',
+        pte: { score: '≥ 36', sub: '无强制小分' },
+        ielts: { score: '≥ 5.0', sub: '无强制小分' },
+      },
+      {
+        id: 'mm2h', name: 'MM2H / 第二家园', note: ' Malaysia My Second Home',
+        pte: { score: '—', sub: '各计划要求不同，请查最新政策' },
+        ielts: { score: '—', sub: '' },
+      },
+      {
+        id: 'pte-format-ca', name: '⚠️ PTE类考试形式', note: 'PTE Core vs PTE Academic 是两种不同考试',
+        pte: { score: '—', sub: '学签用 PTE Academic；工签/移民用 PTE Core' },
+        ielts: { score: '—', sub: 'G 类为主' },
+      },
+    ]
+  },
+  ca: {
+    label: '加拿大', flag: '🇨🇦', color: '#F59E0B',
+    types: [
+      {
+        id: 'study-permit', name: '学签（Study Permit）', note: 'SDS 快捷通道 2023.4 起接受 PTE Academic',
+        pte: { score: '60', sub: 'L60 · R60 · S60 · W60（PTE Academic）' },
+        ielts: { score: '6.0', sub: 'L6.0 · R6.0 · S6.0 · W6.0' },
+      },
+      {
+        id: 'sds', name: 'SDS 学生直入计划', note: '需配 GIC + 第一年学费',
+        pte: { score: '60', sub: 'L60 · R60 · S60 · W60（PTE Academic）' },
+        ielts: { score: '6.0', sub: 'L6.0 · R6.0 · S6.0 · W6.0' },
+      },
+      {
+        id: 'ee-fsw', name: 'FSW 联邦技术移民', note: 'Express Entry · 联邦技术移民',
+        pte: { score: 'CLB 7', sub: 'L60 · R60 · S68 · W69（PTE Core）' },
+        ielts: { score: '6.0', sub: 'L6.0 · R6.0 · S6.0 · W6.0' },
+      },
+      {
+        id: 'ee-cec-high', name: 'CEC 经验类（TEER 0/1）', note: 'Express Entry · 经验类高端岗位',
+        pte: { score: 'CLB 7', sub: 'L60 · R60 · S68 · W69（PTE Core）' },
+        ielts: { score: '6.0', sub: 'L6.0 · R6.0 · S6.0 · W6.0' },
+      },
+      {
+        id: 'ee-cec-low', name: 'CEC 经验类（TEER 2/3）', note: '经验类技术要求较低岗位',
+        pte: { score: 'CLB 5', sub: 'L39 · R42 · S51 · W51（PTE Core）' },
+        ielts: { score: '5.0', sub: 'L5.0 · R4.0 · S5.0 · W5.0' },
+      },
+      {
+        id: 'ee-fstp', name: 'FSTP 联邦技工', note: '技工类职业（厨、焊、修等）',
+        pte: { score: '听说 CLB5 / 读写 CLB4', sub: 'L≥39 · S≥51 · R≥33 · W≥41（PTE Core）' },
+        ielts: { score: '听说 5.0 / 读写 4.5', sub: 'L5.0 · S5.0 · R4.5 · W4.5' },
+      },
+      {
+        id: 'pnp-bc', name: 'BC省 BCPNP', note: '技术劳工 CLB 7 · 毕业生 CLB 5–6',
+        pte: { score: 'CLB 7', sub: 'L60 · R60 · S68 · W69（技术类）' },
+        ielts: { score: '6.0', sub: 'L6.0 · R6.0 · S6.0 · W6.0' },
+      },
+      {
+        id: 'pnp-ont', name: '安省 OINP', note: '海外雇主劳工 · 紧缺职业 CLB 6',
+        pte: { score: 'CLB 7 / 6', sub: 'L60/R60/S68/W69 或 L51/R51/S59/W60' },
+        ielts: { score: '6.0 / 5.5', sub: '各单项相应' },
+      },
+      {
+        id: 'pnp-prairie', name: '草原三省 PNP', note: '曼省 / 萨省 / 阿省 · 境内工签持有者',
+        pte: { score: 'CLB 4–5', sub: 'CLB 4: L28/R33/S42/W41 · CLB 5: L39/R42/S51/W51' },
+        ielts: { score: '4.0–5.0', sub: 'CLB 4: L4.5/R3.5 · CLB 5: L5.0/R4.0' },
+      },
+      {
+        id: 'pnp-prairie-foreign', name: '草原三省境外通道', note: '海外申请人',
+        pte: { score: 'CLB 5–7', sub: '看具体项目选择' },
+        ielts: { score: '5.0–6.0', sub: '看具体项目选择' },
+      },
+      {
+        id: 'work-permit-imp', name: 'LMIA 工签（IMP）', note: 'International Mobility Program',
+        pte: { score: 'TEER 0/1: CLB 7 / TEER 2/3: CLB 5', sub: 'L60/R60/S68/W69 或 L39/R42/S51/W51' },
+        ielts: { score: '6.0 / 5.0', sub: '按岗位级别' },
+      },
+      {
+        id: 'startup', name: 'SUV 创业签证', note: 'Start-up Visa Program',
+        pte: { score: 'CLB 5', sub: 'L39 · R42 · S51 · W51（PTE Core）' },
+        ielts: { score: '5.0', sub: 'L5.0 · R4.0 · S5.0 · W5.0' },
+      },
+      {
+        id: 'super-visa', name: '超级签证', note: '父母/祖父母 10 年多次往返',
+        pte: { score: 'CLB 5', sub: 'L39 · R42 · S51 · W51（PTE Core）' },
+        ielts: { score: '5.0', sub: 'L5.0 · R4.0 · S5.0 · W5.0' },
+      },
+      {
+        id: 'clb-table', name: '📊 CLB ↔ PTE Core 换算表', note: 'IRCC 官方换算表',
+        pte: { score: 'CLB 4–10', sub: 'CLB 4: L28/R33/S42/W41陆 CLB 7: L60/R60/S68/W69陆 CLB 9: L82/R78/S84/W88陆 CLB 10: L89/R88/S89/W90' },
+        ielts: { score: '4.0–8.0', sub: 'CLB 4: 4.5/4.0陆 CLB 7: 6.0陆 CLB 9: 7.0陆 CLB 10: 8.0' },
+      },
+    ]
+  }
+};
+
+// ===== 学校数据 =====
+const schools = [
+  { id:'au-1',  name:'澳大利亚国立大学',   nameEn:'ANU',        city:'堪培拉',    country:'au', bachelor:{pte:'57，单项≥50',ielts:'6.5，单项≥6.0'}, master:{pte:'57，单项≥50',ielts:'6.5，单项≥6.0'}, note:'2024.9起实行新标准' },
+  { id:'au-2',  name:'墨尔本大学',          nameEn:'UniMelb',    city:'墨尔本',    country:'au', bachelor:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'}, master:{pte:'58–65，单项≥50',ielts:'6.5，单项≥6.0'}, note:'部分学院(医学/法学)要求更高' },
+  { id:'au-3',  name:'悉尼大学',            nameEn:'USYD',       city:'悉尼',      country:'au', bachelor:{pte:'61，单项≥54',ielts:'6.5，单项≥6.0'},  master:{pte:'61，单项≥54',ielts:'6.5，单项≥6.0'},         note:'商科/法学/医学等要求68–76' },
+  { id:'au-4',  name:'新南威尔士大学',        nameEn:'UNSW',       city:'悉尼',      country:'au', bachelor:{pte:'64，单项≥54',ielts:'6.5，单项≥6.0'},      master:{pte:'64–65，单项≥54',ielts:'6.5–7.0，单项≥6.0'},         note:'商科/法学要求65' },
+  { id:'au-5',  name:'昆士兰大学',          nameEn:'UQ',         city:'布里斯班',  country:'au', bachelor:{pte:'64，单项≥60',ielts:'6.5，单项≥6.0'},      master:{pte:'64，单项≥60',ielts:'6.5，单项≥6.0'},         note:'分5级，最低64，最高82' },
+  { id:'au-6',  name:'莫纳什大学',          nameEn:'Monash',     city:'墨尔本',    country:'au', bachelor:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},      master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'教育/医学等要求更高' },
+  { id:'au-7',  name:'西澳大学',            nameEn:'UWA',        city:'珀斯',      country:'au', bachelor:{pte:'64，口写≥59，听读≥54',ielts:'6.5，单项≥6.0'},  master:{pte:'64，口写≥59，听读≥54',ielts:'6.5，单项≥6.0'},         note:'法学硕士70(全项)，教育硕士70' },
+  { id:'au-8',  name:'阿德莱德大学',        nameEn:'Adelaide',   city:'阿德莱德',  country:'au', bachelor:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},      master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'教育/法学/医学要求65' },
+  { id:'au-9',  name:'悉尼科技大学',        nameEn:'UTS',        city:'悉尼',      country:'au', bachelor:{pte:'58–65',ielts:'6.0–6.5'},      master:{pte:'58–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-10', name:'昆士兰科技大学',      nameEn:'QUT',        city:'布里斯班',  country:'au', bachelor:{pte:'58–65',ielts:'6.0–6.5'},      master:{pte:'58–79',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-11', name:'麦考瑞大学',          nameEn:'Macquarie',  city:'悉尼',      country:'au', bachelor:{pte:'57–65',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-12', name:'格里菲斯大学',        nameEn:'Griffith',   city:'布里斯班',  country:'au', bachelor:{pte:'57–65',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-13', name:'卧龙岗大学',          nameEn:'UOW',        city:'卧龙岗',    country:'au', bachelor:{pte:'57–65',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-14', name:'科廷大学',            nameEn:'Curtin',     city:'珀斯',      country:'au', bachelor:{pte:'57–69',ielts:'6.0–6.5'},      master:{pte:'57–79',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-15', name:'RMIT 大学',           nameEn:'RMIT',       city:'墨尔本',    country:'au', bachelor:{pte:'58–73',ielts:'6.0–7.0'},      master:{pte:'58–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-16', name:'纽卡斯尔大学（澳）',   nameEn:'UON',        city:'纽卡斯尔',  country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-17', name:'迪肯大学',            nameEn:'Deakin',     city:'墨尔本',    country:'au', bachelor:{pte:'58–66',ielts:'6.0–6.5'},      master:{pte:'58–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-18', name:'弗林德斯大学',        nameEn:'Flinders',   city:'阿德莱德',  country:'au', bachelor:{pte:'50–57',ielts:'6.0'},           master:{pte:'50–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-19', name:'詹姆斯库克大学',       nameEn:'JCU',        city:'汤斯维尔',  country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-20', name:'乐卓博大学',          nameEn:'La Trobe',   city:'墨尔本',    country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-21', name:'南澳大学',            nameEn:'UniSA',      city:'阿德莱德',  country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-22', name:'斯威本科技大学',       nameEn:'Swinburne',  city:'墨尔本',    country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-23', name:'邦德大学',            nameEn:'Bond',       city:'黄金海岸',  country:'au', bachelor:{pte:'58–66',ielts:'6.0–6.5'},      master:{pte:'58–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'au-24', name:'澳大利亚天主教大学',   nameEn:'ACU',        city:'悉尼/墨尔本',country:'au',bachelor:{pte:'57–66',ielts:'6.0–6.5'},master:{pte:'57–73',ielts:'6.0–7.0'},note:'' },
+  { id:'au-25', name:'西悉尼大学',          nameEn:'WSU',        city:'悉尼',      country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-26', name:'莫道什大学',          nameEn:'Murdoch',    city:'珀斯',      country:'au', bachelor:{pte:'50–57',ielts:'6.0'},           master:{pte:'50–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-27', name:'堪培拉大学',          nameEn:'UC',         city:'堪培拉',    country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-28', name:'查尔斯达尔文大学',      nameEn:'CDU',        city:'达尔文',    country:'au', bachelor:{pte:'50–57',ielts:'6.0'},           master:{pte:'50–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-29', name:'塔斯马尼亚大学',      nameEn:'UTAS',       city:'霍巴特',    country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},      master:{pte:'57–73',ielts:'6.0–7.0'},         note:'' },
+  { id:'au-30', name:'中央昆士兰大学',       nameEn:'CQUni',      city:'洛克汉普顿',country:'au', bachelor:{pte:'57–66',ielts:'6.0–6.5'},master:{pte:'57–73',ielts:'6.0–7.0'},note:'' },
+  { id:'nz-1',  name:'奥克兰大学',          nameEn:'UoA',        city:'奥克兰',    country:'nz', bachelor:{pte:'50，单项≥42',ielts:'6.0，单项≥5.5'},     master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'医学/工程等热门专业更高' },
+  { id:'nz-2',  name:'奥塔哥大学',          nameEn:'Otago',      city:'但尼丁',    country:'nz', bachelor:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},     master:{pte:'64，单项≥57',ielts:'6.5，单项≥6.0'},         note:'医学专业著称，全科要求较高' },
+  { id:'nz-3',  name:'惠灵顿维多利亚大学',    nameEn:'VUW',        city:'惠灵顿',    country:'nz', bachelor:{pte:'50，单项≥42',ielts:'6.0，单项≥5.5'},     master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'法律/政治等较强' },
+  { id:'nz-4',  name:'坎特伯雷大学',        nameEn:'UC',         city:'基督城',    country:'nz', bachelor:{pte:'50，单项≥42',ielts:'6.0，单项≥5.5'},     master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'工程/计算机较强' },
+  { id:'nz-5',  name:'怀卡托大学',          nameEn:'Waikato',    city:'汉密尔顿',  country:'nz', bachelor:{pte:'50，单项≥42',ielts:'6.0，单项≥5.5'},     master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'商科/管理较强' },
+  { id:'nz-6',  name:'梅西大学',            nameEn:'Massey',     city:'北帕默斯顿',country:'nz', bachelor:{pte:'50，单项≥42',ielts:'6.0，单项≥5.5'},master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'兽医/航空著称' },
+  { id:'nz-7',  name:'林肯大学',            nameEn:'Lincoln',    city:'基督城',    country:'nz', bachelor:{pte:'50，单项≥42',ielts:'6.0，单项≥5.5'},     master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'农业/环境科学较强' },
+  { id:'nz-8',  name:'奥克兰理工大学',       nameEn:'AUT',        city:'奥克兰',    country:'nz', bachelor:{pte:'50，单项≥42',ielts:'6.0，单项≥5.5'},     master:{pte:'58，单项≥50',ielts:'6.5，单项≥6.0'},         note:'酒店/旅游/体育较强' },
+  { id:'uk-1',  name:'牛津大学',            nameEn:'Oxford',     city:'牛津',      country:'uk', bachelor:{pte:'66–76',ielts:'7.0–7.5'},     master:{pte:'66–76',ielts:'7.0–7.5'},         note:'各学院差异较大' },
+  { id:'uk-2',  name:'剑桥大学',            nameEn:'Cambridge',  city:'剑桥',      country:'uk', bachelor:{pte:'66–76',ielts:'7.0–7.5'},     master:{pte:'66–76',ielts:'7.0–7.5'},         note:'' },
+  { id:'uk-3',  name:'帝国理工学院',        nameEn:'ICL',        city:'伦敦',      country:'uk', bachelor:{pte:'62–69',ielts:'6.5–7.0'},     master:{pte:'62–69',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-4',  name:'伦敦大学学院',        nameEn:'UCL',        city:'伦敦',      country:'uk', bachelor:{pte:'59–73',ielts:'6.5–7.5'},     master:{pte:'59–76',ielts:'6.5–7.5'},         note:'UCL 自有评分等级' },
+  { id:'uk-5',  name:'爱丁堡大学',          nameEn:'Edinburgh',   city:'爱丁堡',    country:'uk', bachelor:{pte:'59–69',ielts:'6.5–7.0'},     master:{pte:'59–69',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-6',  name:'曼彻斯特大学',        nameEn:'Manchester',  city:'曼彻斯特',  country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-7',  name:'伦敦国王学院',        nameEn:'KCL',        city:'伦敦',      country:'uk', bachelor:{pte:'59–73',ielts:'6.5–7.5'},     master:{pte:'59–73',ielts:'6.5–7.5'},         note:'' },
+  { id:'uk-8',  name:'伦敦政治经济学院',     nameEn:'LSE',        city:'伦敦',      country:'uk', bachelor:{pte:'59–69',ielts:'7.0–7.5'},     master:{pte:'59–69',ielts:'7.0–7.5'},         note:'写作要求较高' },
+  { id:'uk-9',  name:'布里斯托大学',        nameEn:'Bristol',     city:'布里斯托',  country:'uk', bachelor:{pte:'59–69',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-10', name:'华威大学',            nameEn:'Warwick',    city:'考文垂',    country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-11', name:'格拉斯哥大学',        nameEn:'Glasgow',    city:'格拉斯哥',  country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-12', name:'伯明翰大学',          nameEn:'Birmingham', city:'伯明翰',    country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-13', name:'利兹大学',            nameEn:'Leeds',      city:'利兹',      country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-14', name:'谢菲尔德大学',        nameEn:'Sheffield',  city:'谢菲尔德',  country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-15', name:'南安普顿大学',        nameEn:'Southampton',city:'南安普顿',  country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-16', name:'诺丁汉大学',          nameEn:'Nottingham', city:'诺丁汉',    country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-17', name:'杜伦大学',            nameEn:'Durham',    city:'杜伦',      country:'uk', bachelor:{pte:'59–69',ielts:'6.5–7.0'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-18', name:'圣安德鲁斯大学',       nameEn:'St Andrews', city:'圣安德鲁斯',country:'uk', bachelor:{pte:'59–73',ielts:'6.5–7.5'},master:{pte:'59–73',ielts:'6.5–7.5'},         note:'' },
+  { id:'uk-19', name:'纽卡斯尔大学（英）',   nameEn:'Newcastle UK',city:'纽卡斯尔',country:'uk',bachelor:{pte:'59–66',ielts:'6.0–6.5'},master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'uk-20', name:'卡迪夫大学',          nameEn:'Cardiff',   city:'卡迪夫',    country:'uk', bachelor:{pte:'59–66',ielts:'6.0–6.5'},     master:{pte:'59–73',ielts:'6.5–7.0'},         note:'' },
+  { id:'my-1',  name:'马来亚大学',          nameEn:'UM',         city:'吉隆坡',    country:'my', bachelor:{pte:'47–55',ielts:'5.0–6.0'},      master:{pte:'47–63',ielts:'5.5–6.5'},         note:'' },
+  { id:'my-2',  name:'博特拉大学',          nameEn:'UPM',        city:'雪兰莪',    country:'my', bachelor:{pte:'47–55',ielts:'5.0–6.0'},      master:{pte:'47–63',ielts:'5.5–6.5'},         note:'' },
+  { id:'my-3',  name:'国民大学',            nameEn:'UKM',        city:'雪兰莪',    country:'my', bachelor:{pte:'47–55',ielts:'5.0–6.0'},      master:{pte:'47–63',ielts:'5.5–6.5'},         note:'' },
+  { id:'my-4',  name:'理科大学',            nameEn:'USM',        city:'槟城',      country:'my', bachelor:{pte:'47–55',ielts:'5.0–6.0'},      master:{pte:'47–63',ielts:'5.5–6.5'},         note:'' },
+  { id:'my-5',  name:'理工大学',            nameEn:'UTM',        city:'柔佛',      country:'my', bachelor:{pte:'47–59',ielts:'5.5–6.0'},      master:{pte:'47–63',ielts:'5.5–6.5'},         note:'' },
+  { id:'my-6',  name:'泰莱大学',            nameEn:"Taylor's",  city:'梳邦再也',  country:'my', bachelor:{pte:'47–58',ielts:'5.5–6.0'},      master:{pte:'47–65',ielts:'5.5–6.5'},         note:'商科较强' },
+  { id:'my-7',  name:'思特雅大学',          nameEn:'UCSI',       city:'吉隆坡',    country:'my', bachelor:{pte:'47–58',ielts:'5.5–6.0'},      master:{pte:'47–65',ielts:'5.5–6.5'},         note:'' },
+  { id:'my-8',  name:'国油大学',            nameEn:'UTP',        city:'邦戈',      country:'my', bachelor:{pte:'47–59',ielts:'5.5–6.0'},      master:{pte:'47–63',ielts:'5.5–6.5'},         note:'工程类较强' },
+  { id:'ca-1',  name:'多伦多大学',          nameEn:'UofT',       city:'多伦多',    country:'ca', bachelor:{pte:'60–65',ielts:'6.5'},           master:{pte:'60–70',ielts:'6.5–7.0'},         note:'文理/工程要求 PTE Academic 65' },
+  { id:'ca-2',  name:'麦吉尔大学',          nameEn:'McGill',     city:'蒙特利尔',  country:'ca', bachelor:{pte:'60–67',ielts:'6.5–7.0'},      master:{pte:'60–70',ielts:'6.5–7.0'},         note:'管理学院要求更高' },
+  { id:'ca-3',  name:'不列颠哥伦比亚大学',    nameEn:'UBC',        city:'温哥华',    country:'ca', bachelor:{pte:'60–65',ielts:'6.5'},           master:{pte:'60–70',ielts:'6.5–7.0'},         note:'商科需 70' },
+  { id:'ca-4',  name:'阿尔伯塔大学',        nameEn:'UAlberta',   city:'埃德蒙顿',  country:'ca', bachelor:{pte:'60',ielts:'6.5'},              master:{pte:'60–65',ielts:'6.5'},           note:'' },
+  { id:'ca-5',  name:'滑铁卢大学',          nameEn:'Waterloo',   city:'滑铁卢',    country:'ca', bachelor:{pte:'60',ielts:'6.5'},              master:{pte:'60–65',ielts:'6.5'},           note:'计算机/工程著称' },
+  { id:'ca-6',  name:'西蒙菲莎大学',        nameEn:'SFU',        city:'本拿比',    country:'ca', bachelor:{pte:'60',ielts:'6.5'},              master:{pte:'60–65',ielts:'6.5'},           note:'带 CO-OP 可加分' },
+  { id:'ca-7',  name:'麦克马斯特大学',       nameEn:'McMaster',   city:'汉密尔顿',  country:'ca', bachelor:{pte:'60',ielts:'6.5'},              master:{pte:'60–65',ielts:'6.5'},           note:'医学院要求高' },
+  { id:'ca-8',  name:'女王大学',            nameEn:"Queen's",    city:'金斯顿',    country:'ca', bachelor:{pte:'60',ielts:'6.5'},              master:{pte:'60–65',ielts:'6.5'},           note:'商科较知名' },
+];
+
+// ===== 状态 =====
+let currentCountry = 'all';
+let currentVisaCountry = null;
+let currentMode = 'visa';  // 'visa' | 'school'
+let searchText = '';
+
+// ===== 工具 =====
+function parseScore(s) {
+  const m = String(s).match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
+}
+
+// ===== 视图切换 =====
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  document.getElementById('visa-view').classList.toggle('active', mode === 'visa');
+  document.getElementById('school-view').classList.toggle('active', mode === 'school');
+
+  if (mode === 'visa') {
+    renderVisaView();
+  } else {
+    renderSchoolView();
+  }
+}
+
+// ===== 签证视图 =====
+// 选中国家后显示该国全部签证类型
+let selectedVisaCountry = null; // 'au' | 'nz' | 'uk' | 'my' | null
+
+function renderVisaView() {
+  const list = document.getElementById('visaCountryList');
+  const countries = currentCountry === 'all' ? ['au','nz','uk','my','ca'] : [currentCountry];
+
+  let html = '';
+  countries.forEach(c => {
+    const vd = visaData[c];
+    html += `<div class="visa-country-block">
+      <div class="visa-country-title" style="color:${vd.color}">
+        ${vd.flag} ${vd.label}
+        <span style="font-size:0.8rem;font-weight:400;color:var(--text-light)">— ${vd.types.length} 种签证</span>
+      </div>`;
+    vd.types.forEach(t => {
+      const isCore = c === 'ca';
+      const pteLabel = isCore ? '考点类' : '学术类';
+      const pteBadgeBg = isCore ? '#FEF3C7' : '#FEE2E2';
+      const pteBadgeFg = isCore ? '#92400E' : '#991B1B';
+      const pteIconClass = isCore ? 'icon-pte-core' : 'icon-pte';
+      html += `
+      <div class="visa-card" id="vc-${c}-${t.id}">
+        <div class="visa-card-header" onclick="this.parentElement.classList.toggle('expanded')">
+          <div>
+            <div class="visa-card-title">${t.name}</div>
+            ${t.note ? `<div class="visa-card-note">${t.note}</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:0.75rem;background:${pteBadgeBg};color:${pteBadgeFg};padding:2px 7px;border-radius:5px;font-weight:600;">PTE ${isCore?'Core':'A'} ${parseScore(t.pte.score)}</span>
+            <span style="font-size:0.75rem;background:#DBEAFE;color:#1D4ED8;padding:2px 7px;border-radius:5px;font-weight:600;">IELTS ${parseScore(t.ielts.score)}</span>
+            <span class="arrow">▾</span>
+          </div>
+        </div>
+        <div class="visa-card-body">
+          <div class="visa-req-grid">
+            <div class="visa-req-item">
+              <div class="exam-icon ${pteIconClass}">PTE</div>
+              <div class="visa-req-info">
+                <div class="exam-name">PTE ${pteLabel}</div>
+                <div class="exam-score">${t.pte.score}</div>
+                <div class="exam-sub">${t.pte.sub}</div>
+              </div>
+            </div>
+            <div class="visa-req-item">
+              <div class="exam-icon icon-ielts">IELTS</div>
+              <div class="visa-req-info">
+                <div class="exam-name">雅思 G 类（UKVI/General）</div>
+                <div class="exam-score">${t.ielts.score}</div>
+                <div class="exam-sub">${t.ielts.sub}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  list.innerHTML = html;
+
+  const totalTypes = countries.reduce((n, c) => n + visaData[c].types.length, 0);
+  document.getElementById('statsText').textContent =
+    currentCountry === 'all'
+      ? `共 ${Object.keys(visaData).length} 个国家 · ${totalTypes} 种签证类型`
+      : `${visaData[currentCountry].flag} ${visaData[currentCountry].label} · ${totalTypes} 种签证类型`;
+}
+
+// ===== 学校视图 =====
+// 选择某国家后，该国学校卡片顶部显示该国"默认"签证线（如 500 学生签）
+let schoolVisaCountry = null; // 展示某国的默认签证基线
+
+function renderSchoolView() {
+  const results = document.getElementById('schoolResults');
+  const filtered = schools.filter(s => {
+    const matchCountry = currentCountry === 'all' || s.country === currentCountry;
+    const q = searchText.toLowerCase();
+    const matchSearch = !q || s.name.includes(q) || s.nameEn.toLowerCase().includes(q) || s.city.includes(q);
+    return matchCountry && matchSearch;
+  });
+
+  const visaCountryKey = currentCountry === 'all' ? 'au' : currentCountry;
+  const vd = visaData[visaCountryKey];
+  // 默认取第一个签证类型的 PTE 基线
+  const defaultVisa = vd ? vd.types[0] : null;
+
+  document.getElementById('statsText').textContent = `共 ${filtered.length} 所学校`;
+
+  if (filtered.length === 0) {
+    results.innerHTML = `<div class="empty"><div class="empty-icon">🏫</div><h3>没有找到</h3><p>试试其他关键词或国家</p></div>`;
+    return;
+  }
+
+  const BADGE = { au:'badge-au', nz:'badge-nz', uk:'badge-uk', my:'badge-my', ca:'badge-ca' };
+  const CLABEL = { au:'澳洲', nz:'新西兰', uk:'英国', my:'马来西亚', ca:'加拿大' };
+
+  results.innerHTML = filtered.map(s => {
+    function reqRow(exam, score) {
+      let badge = '';
+      if (exam === 'pte' && defaultVisa) {
+        const sc = parseScore(score);
+        const vc = parseScore(defaultVisa.pte.score);
+        if (sc > vc) badge = '<span class="vs-tag vs-higher">＞签证线</span>';
+        else if (sc === vc) badge = '<span class="vs-tag vs-meet">=签证线</span>';
+      }
+      const cls = exam === 'pte' ? 'icon-pte-sm' : 'icon-ielts-sm';
+      const label = exam === 'pte' ? 'PTE' : 'IELTS';
+      return `<div class="req-row">
+        <span class="${cls}">${label}</span>
+        <span style="font-weight:600">${score}</span>${badge}
+      </div>`;
+    }
+
+    return `<div class="school-card">
+      <div class="school-header" onclick="this.parentElement.classList.toggle('expanded')">
+        <div>
+          <div class="school-name">${s.name}</div>
+          <div class="school-city">${s.city} · ${s.nameEn}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="school-badge ${BADGE[s.country]}">${CLABEL[s.country]}</span>
+          <span class="expand-hint">展开 ▾</span>
+        </div>
+      </div>
+      <div class="school-body">
+        <div class="req-table">
+          <div class="req-col">
+            <div class="req-title">🎓 本科 Bachelor</div>
+            ${reqRow('pte', s.bachelor.pte)}
+            ${reqRow('ielts', s.bachelor.ielts)}
+          </div>
+          <div class="req-col">
+            <div class="req-title">🎓 硕士 Master</div>
+            ${reqRow('pte', s.master.pte)}
+            ${reqRow('ielts', s.master.ielts)}
+          </div>
+        </div>
+        ${s.note ? `<div class="school-note">⚠️ ${s.note}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== 事件 =====
+document.querySelectorAll('.country-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.country-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentCountry = tab.dataset.country;
+    if (currentMode === 'visa') renderVisaView();
+    else renderSchoolView();
+  });
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchText = e.target.value.trim();
+  if (currentMode === 'school') renderSchoolView();
+});
+
+// ===== 初始化 =====
+renderVisaView();
+</script>
+</body>
+</html>
